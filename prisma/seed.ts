@@ -1,5 +1,6 @@
 import prisma from "../src/config/prisma.js"
 import { Role, EstadoCita } from "../generated/prisma/client.js"
+import bcrypt from "bcryptjs"
 
 async function main() {
   console.log("Iniciando seed de datos...")
@@ -10,6 +11,9 @@ async function main() {
   await prisma.especialidad.deleteMany()
   await prisma.paciente.deleteMany()
   await prisma.user.deleteMany()
+
+  // Hash para contraseñas de usuarios semilla
+  const passwordHash = await bcrypt.hash("password123", 10)
 
   // 1. Crear Especialidades (mínimo 3)
   const cardiologia = await prisma.especialidad.create({
@@ -110,17 +114,17 @@ async function main() {
     data: [
       {
         email: "recepcion@clinica.com",
-        password: "hashed_password_123",
+        password: passwordHash,
         role: Role.RECEPCIONISTA
       },
       {
         email: "carlos.mendoza@clinica.com",
-        password: "hashed_password_123",
+        password: passwordHash,
         role: Role.MEDICO
       },
       {
         email: "gerencia@clinica.com",
-        password: "hashed_password_123",
+        password: passwordHash,
         role: Role.GERENCIA
       }
     ]

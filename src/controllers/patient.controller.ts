@@ -6,7 +6,6 @@ export const create = async (req: Request, res: Response): Promise<void> => {
     const newPatient = await patientModel.createPatient(req.body)
     res.status(201).json(newPatient)
   } catch (error: any) {
-    // Manejo de error de unicidad de Prisma (código P2002: unique constraint failed en email)
     if (error?.code === "P2002") {
       res.status(409).json({ error: "Ya existe un paciente registrado con ese correo electrónico" })
       return
@@ -40,9 +39,13 @@ export const getById = async (req: Request, res: Response): Promise<void> => {
       return
     }
 
-    res.json(patient)
+    // Devolvemos el paciente con citas y el alias appointments para compatibilidad con la guía
+    res.json({
+      ...patient,
+      appointments: patient.citas
+    })
   } catch (error) {
-    console.error("Error al consultar paciente por ID:", error)
+    console.error("Error al consultar expediente de paciente por ID:", error)
     res.status(500).json({ error: "Error interno del servidor al buscar el paciente" })
   }
 }
