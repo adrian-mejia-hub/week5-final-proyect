@@ -1,0 +1,88 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  RECEPCIONISTA
+  MEDICO
+  GERENCIA
+}
+
+enum EstadoCita {
+  PROGRAMADA
+  COMPLETADA
+  CANCELADA
+}
+
+model User {
+  id       Int    @id @default(autoincrement())
+  email    String @unique
+  password String
+  role     Role
+
+  @@map("users")
+}
+
+model Especialidad {
+  id          Int      @id @default(autoincrement())
+  nombre      String   @unique @db.VarChar(100)
+  descripcion String?  @db.Text
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  medicos Medico[]
+
+  @@map("especialidades")
+}
+
+model Medico {
+  id             Int          @id @default(autoincrement())
+  nombre         String       @db.VarChar(100)
+  apellido       String       @db.VarChar(100)
+  email          String       @unique @db.VarChar(150)
+  telefono       String?      @db.VarChar(20)
+  especialidadId Int          @map("especialidad_id")
+  fechaRegistro  DateTime     @default(now()) @map("fecha_registro")
+
+  especialidad Especialidad @relation(fields: [especialidadId], references: [id])
+  citas        Cita[]
+
+  @@map("medicos")
+}
+
+model Paciente {
+  id              Int      @id @default(autoincrement())
+  nombre          String   @db.VarChar(100)
+  apellido        String   @db.VarChar(100)
+  email           String   @unique @db.VarChar(150)
+  telefono        String?  @db.VarChar(20)
+  fechaNacimiento DateTime @map("fecha_nacimiento") @db.Date
+  fechaRegistro   DateTime @default(now()) @map("fecha_registro")
+
+  citas Cita[]
+
+  @@map("pacientes")
+}
+
+model Cita {
+  id         Int        @id @default(autoincrement())
+  pacienteId Int        @map("paciente_id")
+  medicoId   Int        @map("medico_id")
+  fechaHora  DateTime   @map("fecha_hora")
+  estado     EstadoCita @default(PROGRAMADA)
+  motivo     String?    @db.Text
+  createdAt  DateTime   @default(now()) @map("created_at")
+  updatedAt  DateTime   @updatedAt @map("updated_at")
+
+  paciente Paciente @relation(fields: [pacienteId], references: [id])
+  medico   Medico   @relation(fields: [medicoId], references: [id])
+
+  @@index([medicoId, fechaHora])
+  @@index([pacienteId])
+  @@map("citas")
+}
