@@ -22,10 +22,23 @@ export const getAllPatients = async () => {
   })
 }
 
+// Expediente completo del paciente: anidando paciente -> citas -> médico -> especialidad
 export const getPatientById = async (id: number) => {
   return await prisma.paciente.findUnique({
-    where: {
-      id
+    where: { id },
+    include: {
+      citas: {
+        include: {
+          medico: {
+            include: {
+              especialidad: true
+            }
+          }
+        },
+        orderBy: {
+          fechaHora: "desc"
+        }
+      }
     }
   })
 }

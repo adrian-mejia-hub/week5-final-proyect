@@ -1,0 +1,216 @@
+import fs from "fs"
+import path from "path"
+
+const swaggerDocument = {
+  openapi: "3.0.0",
+  info: {
+    title: "Clínica Salud Integral - API RESTful",
+    description: "Documentación oficial interactiva de la API para la Clínica 'Salud Integral'. Incluye módulos de Autenticación JWT, Recepción (Pacientes y Médicos) y Consultorio.",
+    version: "1.0.0"
+  },
+  servers: [
+    {
+      url: "http://localhost:3000",
+      description: "Servidor Local"
+    }
+  ],
+  components: {
+    securitySchemes: {
+      bearerAuth: {
+        type: "http",
+        scheme: "bearer",
+        bearerFormat: "JWT",
+        description: "Introduce el token JWT obtenido en el login con el formato: Bearer <token>"
+      }
+    }
+  },
+  tags: [
+    { name: "Autenticación", description: "Registro e inicio de sesión de usuarios" },
+    { name: "Pacientes", description: "Módulo de Recepción - Alta y consulta de expedientes" },
+    { name: "Médicos", description: "Módulo de Recepción - Directorio médico por especialidad" },
+    { name: "Especialidades", description: "Catálogo de áreas médicas" }
+  ],
+  paths: {
+    "/api/auth/register": {
+      post: {
+        tags: ["Autenticación"],
+        summary: "Registrar un nuevo usuario con rol",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["email", "password", "role"],
+                properties: {
+                  email: { type: "string", example: "usuario@clinica.com" },
+                  password: { type: "string", example: "Password123!" },
+                  role: { type: "string", enum: ["RECEPCIONISTA", "MEDICO", "GERENCIA"], example: "RECEPCIONISTA" }
+                }
+              }
+            }
+          }
+        },
+        responses: {
+          "201": { description: "Usuario registrado exitosamente" },
+          "500": { description: "Error al registrar usuario" }
+        }
+      }
+    },
+    "/api/auth/login": {
+      post: {
+        tags: ["Autenticación"],
+        summary: "Iniciar sesión y obtener token JWT",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["email", "password"],
+                properties: {
+                  email: { type: "string", example: "recepcion@clinica.com" },
+                  password: { type: "string", example: "hashed_password_123" }
+                }
+              }
+            }
+          }
+        },
+        responses: {
+          "200": {
+            description: "Autenticación exitosa",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    token: { type: "string" }
+                  }
+                }
+              }
+            }
+          },
+          "401": { description: "Credenciales inválidas" }
+        }
+      }
+    },
+    "/api/patients": {
+      get: {
+        tags: ["Pacientes"],
+        summary: "Listar todos los pacientes (Requiere rol RECEPCIONISTA)",
+        security: [{ bearerAuth: [] }],
+        responses: {
+          "200": { description: "Lista de pacientes devuelta con éxito" },
+          "401": { description: "Token no proporcionado o inválido" },
+          "403": { description: "No tienes permiso para acceder a este recurso" }
+        }
+      },
+      post: {
+        tags: ["Pacientes"],
+        summary: "Registrar nuevo paciente (Requiere rol RECEPCIONISTA)",
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["nombre", "apellido", "email", "fechaNacimiento"],
+                properties: {
+                  nombre: { type: "string", example: "Carlos" },
+                  apellido: { type: "string", example: "Gómez" },
+                  email: { type: "string", example: "carlos.gomez@example.com" },
+                  telefono: { type: "string", example: "+503 7123-4567" },
+                  fechaNacimiento: { type: "string", format: "date", example: "1992-08-25" }
+                }
+              }
+            }
+          }
+        },
+        responses: {
+          "201": { description: "Paciente registrado exitosamente" },
+          "400": { description: "Datos inválidos (formato de correo o fecha futura)" },
+          "401": { description: "Token no proporcionado o inválido" },
+          "403": { description: "No tienes permiso" }
+        }
+      }
+    },
+    "/api/patients/{id}": {
+      get: {
+        tags: ["Pacientes"],
+        summary: "Consultar expediente completo del paciente por ID (Requiere rol RECEPCIONISTA)",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: "id",
+            in: "path",
+            required: true,
+            schema: { type: "integer" },
+            description: "Identificador del paciente"
+          }
+        ],
+        responses: {
+          "200": { description: "Expediente con datos personales e historial de citas anidado" },
+          "401": { description: "Token no proporcionado o inválido" },
+          "403": { description: "No tienes permiso" },
+          "404": { description: "Paciente no encontrado" }
+        }
+      }
+    },
+    "/api/doctors": {
+      get: {
+        tags: ["Médicos"],
+        summary: "Directorio de médicos con filtro por especialidad (Requiere rol RECEPCIONISTA)",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: "specialty",
+            in: "query",
+            required: false,
+            schema: { type: "string" },
+            description: "Filtrar por nombre de especialidad médica (ej. Cardiología, Pediatría)"
+          }
+        ],
+        responses: {
+          "200": { description: "Directorio médico con especialidad anidada" },
+          "401": { description: "Token no proporcionado o inválido" },
+          "403": { description: "No tienes permiso" }
+        }
+      }
+    },
+    "/api/doctors/{id}": {
+      get: {
+        tags: ["Médicos"],
+        summary: "Consultar médico por ID (Requiere rol RECEPCIONISTA)",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: "id",
+            in: "path",
+            required: true,
+            schema: { type: "integer" }
+          }
+        ],
+        responses: {
+          "200": { description: "Información del médico con su especialidad" },
+          "401": { description: "Token no proporcionado o inválido" },
+          "403": { description: "No tienes permiso" },
+          "404": { description: "Médico no encontrado" }
+        }
+      }
+    },
+    "/api/specialties": {
+      get: {
+        tags: ["Especialidades"],
+        summary: "Catálogo de especialidades médicas",
+        responses: {
+          "200": { description: "Listado de especialidades" }
+        }
+      }
+    }
+  }
+}
+
+const outputPath = path.resolve(process.cwd(), "swagger-output.json")
+fs.writeFileSync(outputPath, JSON.stringify(swaggerDocument, null, 2), "utf-8")
+console.log("Documentación Swagger generada exitosamente en:", outputPath)
