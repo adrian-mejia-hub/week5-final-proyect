@@ -35,11 +35,143 @@
       "description": "Módulo de Recepción - Directorio médico por especialidad"
     },
     {
+      "name": "Citas",
+      "description": "Módulo de Consultorio - Agendamiento de citas"
+    },
+    {
       "name": "Especialidades",
       "description": "Catálogo de áreas médicas"
     }
   ],
   "paths": {
+    "/api/appointments": {
+      "post": {
+        "tags": [
+          "Citas"
+        ],
+        "summary": "Agendar una nueva cita (Requiere rol RECEPCIONISTA o MEDICO)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "patientId",
+                  "doctorId",
+                  "scheduledAt"
+                ],
+                "properties": {
+                  "patientId": {
+                    "type": "integer",
+                    "example": 1
+                  },
+                  "doctorId": {
+                    "type": "integer",
+                    "example": 1
+                  },
+                  "scheduledAt": {
+                    "type": "string",
+                    "format": "date-time",
+                    "example": "2026-11-20T10:00:00Z"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "example": "Control mensual de hipertensión"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Cita agendada exitosamente con estado inicial PROGRAMADA"
+          },
+          "400": {
+            "description": "Fecha en el pasado o datos inválidos"
+          },
+          "401": {
+            "description": "Token no proporcionado o inválido"
+          },
+          "403": {
+            "description": "No tienes permiso para acceder a este recurso"
+          },
+          "404": {
+            "description": "Paciente o Médico no encontrado"
+          }
+        }
+      }
+    },
+    "/api/appointments/{id}/status": {
+      "patch": {
+        "tags": [
+          "Citas"
+        ],
+        "summary": "Actualizar estado de una cita a COMPLETADA o CANCELADA (Requiere rol MEDICO)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Identificador único de la cita"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "status"
+                ],
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "COMPLETADA",
+                      "CANCELADA"
+                    ],
+                    "example": "COMPLETADA"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Estado de la cita actualizado exitosamente"
+          },
+          "400": {
+            "description": "ID inválido o estado no permitido"
+          },
+          "401": {
+            "description": "Token no proporcionado o inválido"
+          },
+          "403": {
+            "description": "No tienes permiso para acceder a este recurso (se requiere rol MEDICO)"
+          },
+          "404": {
+            "description": "Cita no encontrada (error P2025 de Prisma capturado)"
+          }
+        }
+      }
+    },
     "/api/auth/register": {
       "post": {
         "tags": [
@@ -327,6 +459,67 @@
         "responses": {
           "200": {
             "description": "Información del médico con su especialidad"
+          },
+          "401": {
+            "description": "Token no proporcionado o inválido"
+          },
+          "403": {
+            "description": "No tienes permiso"
+          },
+          "404": {
+            "description": "Médico no encontrado"
+          }
+        }
+      }
+    },
+    "/api/doctors/{id}/appointments": {
+      "get": {
+        "tags": [
+          "Médicos"
+        ],
+        "summary": "Consultar agenda del médico filtrable por rango de fechas (Requiere rol MEDICO)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "ID del médico"
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "description": "Fecha y hora inicial del rango"
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "description": "Fecha y hora final del rango"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Agenda del médico con los pacientes programados en orden ascendente"
+          },
+          "400": {
+            "description": "ID o fechas inválidas"
           },
           "401": {
             "description": "Token no proporcionado o inválido"

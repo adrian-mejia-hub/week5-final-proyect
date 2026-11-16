@@ -8,6 +8,7 @@ import prisma from "./config/prisma.js"
 import authRoutes from "./routes/auth.routes.js"
 import patientRoutes from "./routes/patient.routes.js"
 import doctorRoutes from "./routes/doctor.routes.js"
+import appointmentRoutes from "./routes/appointment.routes.js"
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -24,7 +25,7 @@ if (fs.existsSync(swaggerPath)) {
   app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument))
 }
 
-// Rutas de Autenticación (Paso 5: bajo /api/auth)
+// Rutas de Autenticación
 app.use("/api/auth", authRoutes)
 
 // Rutas Protegidas de Pacientes (Módulo de Recepción)
@@ -35,6 +36,10 @@ app.use("/api/pacientes", patientRoutes)
 app.use("/api/doctors", doctorRoutes)
 app.use("/api/medicos", doctorRoutes)
 
+// Rutas de Citas Médicas (Módulo de Consultorio: /api/appointments y alias /api/citas)
+app.use("/api/appointments", appointmentRoutes)
+app.use("/api/citas", appointmentRoutes)
+
 // Endpoint de salud
 app.get("/health", async (_req: Request, res: Response) => {
   res.json({
@@ -43,7 +48,7 @@ app.get("/health", async (_req: Request, res: Response) => {
   })
 })
 
-// Catálogo de especialidades (acceso público / catálogo general)
+// Catálogo de especialidades
 app.get("/api/specialties", async (_req: Request, res: Response) => {
   try {
     const especialidades = await prisma.especialidad.findMany({
@@ -75,7 +80,7 @@ app.get("/api/especialidades", async (_req: Request, res: Response) => {
 app.listen(PORT, () => {
   console.log(`Servidor de Clínica "Salud Integral" escuchando en el puerto ${PORT}`)
   console.log(`Documentación Swagger: http://localhost:${PORT}/api/docs`)
-  console.log(`Rutas de Auth: http://localhost:${PORT}/api/auth`)
+  console.log(`Rutas de Citas: http://localhost:${PORT}/api/appointments`)
   console.log(`Rutas de Pacientes: http://localhost:${PORT}/api/patients`)
   console.log(`Directorio de Médicos: http://localhost:${PORT}/api/doctors`)
 })
